@@ -183,7 +183,7 @@ main() {
     echo "1. Recarregue o terminal ou execute:"
     echo "   source ~/.bashrc"
     echo "2. Verifique a instalação:"
-    echo "   $TARGET --versao"
+    echo "   which $TARGET"
     echo "3. Veja os comandos disponíveis:"
     echo "   $TARGET ajuda"
     echo ""
