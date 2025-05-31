@@ -1,0 +1,178 @@
+#!/bin/bash
+
+# jdkman - JDK Version Manager - desinstalador
+
+# Autor: Leonardo Bruno
+# Contato: souzalb@proton.me
+# Versão: 1.0
+# Data: 30/05/2025
+
+# Nome do arquivo alvo
+TARGET="jdkman"
+
+# Pasta raiz jdkman
+DIR_JDKMAN="$HOME/.jdkman"
+
+# Pasta raiz versões JDK
+DIR_JDK_VERSIONS="$DIR_JDKMAN/jdk_versions"
+
+# Link para versão em uso JDK
+CURRENT_JDK="$DIR_JDK_VERSIONS/current"
+
+# Arquivo .bashrc
+FILE_BASHRC="$HOME/.bashrc"
+
+# Arquivo de ambiente JDK
+JDK_ENV_FILE="$DIR_JDKMAN/jdk_env"
+
+# Mensagem inicial
+echo ""
+echo "--------------------------------------------"
+echo "     Desinstalação $TARGET versão 1.0       "
+echo "--------------------------------------------"
+echo ""
+echo "1 - Verificar instalação"
+echo "2 - Remover entradas do bashrc"
+echo "3 - Remover arquivos principais"
+echo "4 - Remover versões JDK (Opcional)"
+echo "5 - Finalizar desinstalação"
+echo ""
+
+# Verifica se instalação existe
+check_jdkman_exists() {
+    if [ ! -d "$DIR_JDKMAN" ]; then
+        echo "Erro: O jdkman não está instalado."
+        echo "Pasta não encontrada: $DIR_JDKMAN"
+        echo ""
+        echo "Nenhuma ação será realizada."
+        exit 0
+    fi
+    echo "Instalação localizada: $DIR_JDKMAN"
+    return 0
+}
+
+# Confirmação do usuário
+confirm_uninstall() {
+    read -p "Deseja realmente desinstalar o $TARGET? [s/N]: " confirm < /dev/tty
+    if [[ ! "$confirm" =~ ^[Ss]$ ]]; then
+        echo ""
+        echo "Desinstalação cancelada pelo usuário."
+        echo "Nenhuma alteração foi realizada."
+        exit 0
+    fi
+}
+
+# Função para calcular tamanho da pasta
+get_folder_size() {
+    if [ -d "${1:-}" ]; then
+        du -sh "$1" | cut -f1
+    else
+        echo "0K"
+    fi
+}
+
+# Remove configurações do bashrc
+remove_bashrc_entries() {
+    echo "Removendo configurações do .bashrc..."
+    local marker="# jdkman auto config"
+    
+    if grep -q "$marker" "$FILE_BASHRC"; then
+        # Cria backup antes de modificar
+        cp "$FILE_BASHRC" "${FILE_BASHRC}.backup-jdkman"
+        
+        # Remove as linhas relacionadas ao jdkman
+        sed -i "/$marker/d" "$FILE_BASHRC"
+        sed -i '/export PATH="$PATH:$HOME\/.jdkman"/d' "$FILE_BASHRC"
+        sed -i '/if \[ -f "$HOME\/.jdkman\/jdk_env" \]; then/,/fi/d' "$FILE_BASHRC"
+        
+        echo "Configurações removidas do .bashrc!"
+        echo "Backup salvo em: ${FILE_BASHRC}.backup-jdkman"
+    else
+        echo "Nenhuma configuração do jdkman encontrada no .bashrc"
+    fi
+    return 0
+}
+
+# Remove arquivos principais
+remove_main_files() {
+    echo "Removendo arquivos principais..."
+    
+    if [ -f "$DIR_JDKMAN/$TARGET" ]; then
+        rm -f "$DIR_JDKMAN/$TARGET"
+        echo "Removido: $DIR_JDKMAN/$TARGET"
+    else
+        echo "Arquivo não encontrado: $DIR_JDKMAN/$TARGET"
+    fi
+
+    if [ -L "$CURRENT_JDK" ]; then
+        rm -f "$CURRENT_JDK"
+        echo "Removido: $CURRENT_JDK"
+    fi
+
+    if [ -f "$JDK_ENV_FILE" ]; then
+        rm -f "$JDK_ENV_FILE"
+        echo "Arquivo removido: $JDK_ENV_FILE"
+    else
+        echo "Arquivo não encontrado: $JDK_ENV_FILE"
+    fi
+    return 0
+}
+
+# Remove versões do JDK (opcional)
+remove_jdk_versions() {
+    echo "Verificando versões do JDK..."
+    
+    if [ -d "$DIR_JDK_VERSIONS" ]; then
+        folder_size=$(get_folder_size "$DIR_JDK_VERSIONS")
+        echo "Tamanho da pasta de versões: $folder_size"
+        echo "Atenção! Esta operação é irreversível!"
+        
+        read -p "Deseja remover todas as versões do JDK? [s/N]: " confirm_versions < /dev/tty
+        if [[ "$confirm_versions" =~ ^[Ss]$ ]]; then
+            read -p "Confirme digitando 'remover': " double_confirm < /dev/tty
+            if [ "$double_confirm" == "remover" ]; then
+                echo "Removendo todas as versões JDK..."
+                rm -rf "$DIR_JDK_VERSIONS"
+                echo "Pasta de versões removida: $DIR_JDK_VERSIONS"
+                
+                # Remove pasta principal se estiver vazia
+                if [ -d "$DIR_JDKMAN" ] && [ -z "$(ls -A "$DIR_JDKMAN")" ]; then
+                    rm -rf "$DIR_JDKMAN"
+                    echo "Pasta principal removida: $DIR_JDKMAN"
+                fi
+            else
+                echo "Confirmação inválida. As versões do JDK não foram removidas."
+            fi
+        else
+            echo "Pasta de versões mantida: $DIR_JDK_VERSIONS"
+        fi
+    else
+        echo "Pasta de versões não encontrada: $DIR_JDK_VERSIONS"
+    fi
+    return 0
+}
+
+# Função principal
+main() {
+    check_jdkman_exists
+    confirm_uninstall
+    remove_bashrc_entries
+    remove_main_files
+    remove_jdk_versions
+
+    echo ""
+    echo "--------------------------------------------"
+    echo "   Desinstalação concluída com sucesso !    "
+    echo "--------------------------------------------"
+    echo ""
+    echo "Recomendações:"
+    echo "1. Recarregue seu terminal com:"
+    echo "   source ~/.bashrc"
+    echo "2. Verifique se todas as entradas foram removidas"
+    echo ""
+    echo "Obrigado por utilizar o $TARGET!"
+    echo "Suporte: souzalb@proton.me"
+}
+
+# Executa desinstalação
+main
