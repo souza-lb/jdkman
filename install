@@ -1,0 +1,195 @@
+#!/bin/bash
+
+# jdkman - JDK Version Manager - instalador
+
+# Autor: Leonardo Bruno
+# Contato: souzalb@proton.me
+# Versão: 1.0
+# Data: 30/05/2025
+
+# Nome do arquivo alvo
+TARGET="jdkman"
+
+# Url arquivo jdkman
+URL_DOWNLOAD="https://raw.githubusercontent.com/souza-lb/jdkman/main/jdkman"
+
+# Pasta raiz jdkman
+DIR_JDKMAN="$HOME/.jdkman"
+
+# Pasta raiz versões JDK
+DIR_JDK_VERSIONS="$DIR_JDKMAN/jdk_versions"
+
+# Arquivo .bashrc
+FILE_BASHRC="$HOME/.bashrc"
+
+# Pasta temporária
+TEMP_DIR=$(mktemp -d /tmp/jdkman-XXXXX)
+CLEANUP_REQUIRED="yes"
+
+# Função para limpeza manual
+cleanup() {
+    if [[ $CLEANUP_REQUIRED == "yes" && -d "$TEMP_DIR" ]]; then
+        rm -rf "$TEMP_DIR"
+        echo "Limpeza de arquivos temporários realizada!"
+    fi
+}
+
+# Mensagem inicial
+echo ""
+echo "--------------------------------------------"
+echo "     Instalação $TARGET versão 1.0          "
+echo "--------------------------------------------"
+echo ""
+echo "1 - Verificar dependências"
+echo "2 - Criar estrutura de pastas"
+echo "3 - Baixar o $TARGET"
+echo "4 - Instalar em: '$DIR_JDKMAN'"
+echo "5 - Configurar PATH no bashrc"
+echo "6 - Realizar limpeza automática"
+echo ""
+
+# Verifica as dependências
+check_dependencies() {
+    if ! command -v wget >/dev/null; then
+        echo "Erro: wget não está instalado no sistema!"
+        echo "Por favor, instale o wget antes de prosseguir!"
+        cleanup
+        exit 1
+    fi
+    
+    if ! command -v tar >/dev/null; then
+        echo "Erro: tar não está instalado no sistema!"
+        echo "Por favor, instale o tar antes de prosseguir!"
+        cleanup
+        exit 1
+    fi
+    
+    echo "Dependências verificadas: wget e tar encontrados."
+    return 0
+}
+
+# Verifica se já existe instalação
+check_existing_installation() {
+    if [ -f "$DIR_JDKMAN/$TARGET" ]; then
+        echo "Aviso: O $TARGET já está instalado em: $DIR_JDKMAN/$TARGET"
+        read -p "Deseja sobrescrever? [s/N]: " response < /dev/tty
+        if [[ ! "$response" =~ ^[Ss]$ ]]; then
+            echo "Instalação cancelada."
+            cleanup
+            exit 0
+        fi
+        echo "Sobrescrevendo instalação existente..."
+    fi
+    return 0
+}
+
+# Cria estrutura de pastas
+create_dir() {
+    echo "Criando estrutura de diretórios..."
+    if ! mkdir -p "$DIR_JDKMAN"; then
+        echo "Erro: Falha ao criar diretório $DIR_JDKMAN"
+        cleanup
+        exit 1
+    fi
+    
+    if ! mkdir -p "$DIR_JDK_VERSIONS"; then
+        echo "Erro: Falha ao criar diretório $DIR_JDK_VERSIONS"
+        cleanup
+        exit 1
+    fi
+    
+    echo "Diretórios criados:"
+    echo "  - $DIR_JDKMAN"
+    echo "  - $DIR_JDK_VERSIONS"
+    return 0
+}
+
+# Download do jdkman
+download_file() {
+    echo "Baixando $TARGET..."
+    if ! wget -q --show-progress "$URL_DOWNLOAD" -O "$TEMP_DIR/$TARGET"; then
+        echo "Erro: Falha no download do $TARGET!"
+        cleanup
+        exit 1
+    fi
+    echo "Download concluído com sucesso!"
+    return 0
+}
+
+# Instala o jdkman
+install_file() {
+    echo "Instalando $TARGET..."
+    if ! chmod +x "$TEMP_DIR/$TARGET"; then
+        echo "Erro: Falha ao dar permissões de execução ao $TARGET!"
+        cleanup
+        exit 1
+    fi
+    
+    if ! mv -f "$TEMP_DIR/$TARGET" "$DIR_JDKMAN/$TARGET"; then
+        echo "Erro: Falha ao mover $TARGET para $DIR_JDKMAN/"
+        cleanup
+        exit 1
+    fi
+    
+    echo "$TARGET instalado em: $DIR_JDKMAN/$TARGET"
+    return 0
+}
+
+# Configura path
+configure_path() {
+    local marker="# jdkman auto config"
+    
+    echo "Configurando ambiente..."
+    
+    if grep -q "$marker" "$FILE_BASHRC"; then
+        echo "Configuração já existe no .bashrc (nada alterado)"
+        return 0
+    fi
+
+    echo "" >> "$FILE_BASHRC"
+    echo "$marker" >> "$FILE_BASHRC"
+    echo 'export PATH="$PATH:$HOME/.jdkman"' >> "$FILE_BASHRC"
+    echo 'if [ -f "$HOME/.jdkman/jdk_env" ]; then' >> "$FILE_BASHRC"
+    echo '    source "$HOME/.jdkman/jdk_env"' >> "$FILE_BASHRC"
+    echo 'fi' >> "$FILE_BASHRC"
+    
+    echo "Configuração adicionada ao .bashrc:"
+    echo "  $marker"
+    echo '  export PATH="$PATH:$HOME/.jdkman"'
+    echo '  if [ -f "$HOME/.jdkman/jdk_env" ]; then'
+    echo '      source "$HOME/.jdkman/jdk_env"'
+    echo '  fi'
+    return 0
+}
+
+# Função principal
+main() {
+    check_dependencies
+    check_existing_installation
+    download_file
+    create_dir
+    install_file
+    configure_path
+    
+    CLEANUP_REQUIRED="no"
+    cleanup
+    
+    echo ""
+    echo "--------------------------------------------"
+    echo "     Instalação concluída com sucesso !     "
+    echo "--------------------------------------------"
+    echo ""
+    echo "Próximos passos:"
+    echo "1. Recarregue o terminal ou execute:"
+    echo "   source ~/.bashrc"
+    echo "2. Verifique a instalação:"
+    echo "   $TARGET --versao"
+    echo "3. Veja os comandos disponíveis:"
+    echo "   $TARGET ajuda"
+    echo ""
+    echo "Suporte: souzalb@proton.me"
+    echo ""
+}
+
+# Executa instalação
+main
