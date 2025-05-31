@@ -1,0 +1,280 @@
+#!/bin/bash
+
+# jdkman - JDK Version Manager
+
+# Autor: Leonardo Bruno
+# Contato: souzalb@proton.me
+# Versão: 1.0
+# Data: 30/05/2025
+
+# Pasta raiz jdkman
+DIR_JDKMAN="$HOME/.jdkman"
+
+# Pasta raiz versões JDK
+DIR_JDK_VERSIONS="$DIR_JDKMAN/jdk_versions"
+
+# Link simbólico para versão corrente
+CURRENT_JDK="$DIR_JDK_VERSIONS/current"
+
+# Arquivo configuração de ambiente
+FILE_ENV_JDK="$DIR_JDKMAN/jdk_env"
+
+# Exibe ajuda
+show_help(){
+    echo "Uso: jdkman [comando]"
+    echo ""
+    echo "Comandos disponíveis:"
+    echo ""
+    echo "install [url/arquivo] - Instala nova versão"
+    echo "remove  [versão]      - Remove versão"
+    echo "list                  - Lista versões disponíveis"
+    echo "use     [versão]      - Define uma versão padrão"
+    echo "disable               - Desativa versão padrão"
+    echo "help                  - Exibe ajuda"
+    return 0
+}
+
+# Verifica se versão já está instalada
+version_exists(){
+    local version="${1:-}"
+    
+    if [ -d  $DIR_JDK_VERSIONS/$version ]; then
+        echo "yes"
+    else
+        echo "no"
+    fi
+    return 0
+}
+
+# Retorna a versão definida como padrão
+get_current_version(){
+    local version
+    
+    if [ -L "$CURRENT_JDK" ]; then
+        local full_path version        
+        full_path=$(readlink -f "$CURRENT_JDK")
+        version=$(basename "$full_path")
+        echo "$version"
+    else
+        echo "none"
+    fi
+    return 0
+}
+
+# Lista todas as versões disponíveis e destaca a versão ativa com "-->"
+list_versions(){
+    local versions current_version
+    
+    versions=$(find "$DIR_JDK_VERSIONS" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort -V)
+    current_version=$(get_current_version)
+    
+    if [ -z "$versions" ]; then
+        echo "Nenhuma versão JDK disponível!"
+        echo "Execute 'jdkman install' para instalar uma nova versão!"
+        return 0
+    fi
+    
+    echo "Versões JDK disponíveis:"
+    while IFS= read -r version; do
+        if [ "$version" = $current_version ]; then
+            echo "--> $version"
+        else
+            echo "    $version"
+        fi
+    done <<< "$versions"
+    return 0
+}
+
+# Ativa uma versão
+use_version(){
+    local current_version version=${1:-}
+    
+    if [ -z "$version" ]; then
+        echo "Erro: Versão não informada!"
+        show_help
+        return 1
+    fi
+    
+    if [ "$(version_exists "$version")" = "no" ]; then
+        echo "Erro: Versão não encontrada!"
+        list_versions
+        return 1
+    fi
+    
+    current_version=$(get_current_version)
+    if [ "$current_version" = "$version" ]; then
+        echo "A versão '$version' já está ativa"
+        return 0
+    fi
+    
+    rm -f "$CURRENT_JDK"
+    ln -s "$DIR_JDK_VERSIONS/$version" "$CURRENT_JDK"
+    
+    if [ ! -f "$FILE_ENV_JDK" ]; then
+        echo "export JAVA_HOME=\"$CURRENT_JDK\"" >> "$FILE_ENV_JDK"
+        echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> "$FILE_ENV_JDK"
+    fi
+    
+    echo "Versão $version definida como padrão!"
+    echo "Execute 'source ~/.bashrc' para aplicar as mudanças!"
+    return 0
+}
+
+# Desabilita versão ativa
+disable_version(){
+    local current_version=$(get_current_version)
+    
+    if [ "$current_version" = "none" ]; then
+        echo "Nenhuma versão JDK em uso no momento!"
+        return 0
+    fi
+    
+    rm -f "$CURRENT_JDK"
+    rm -f "$FILE_ENV_JDK"
+    
+    echo "Versão $current_version desativada com sucesso!"
+    echo "Execute 'source ~/.bashrc' para aplicar as alterações!"
+    return 0
+}
+
+# Instala uma nova versão
+install_version(){
+    local source file_name temp_dir temp_file version
+    
+    source=${1:-}
+    
+    if [ -z "$source" ]; then
+        echo "Erro: [url/arquivo] não fornecido!"
+        return 1
+    fi
+    
+    file_name=$(basename "$source")
+    version=$(echo "$file_name" | grep -oP 'openjdk-\K[^_]+')
+    
+    if [ -z "$version" ]; then
+        echo "Erro: Não foi possível detectar a versão automaticamente!"
+        echo "Exemplos válidos: 24.0.1, 25-ea+25"
+        read -p "Informe a versão manualmente (sem 'v'): " version < /dev/tty
+    fi
+    
+    if [ -z "$version" ]; then
+        echo "Erro: Versão necessária!"
+        return 1
+    fi
+    
+    if [ "$(version_exists "$version")" = "yes" ]; then
+        echo "Erro: A versão '$version' já está instalada!"
+        return 1
+    fi
+    
+    temp_dir=$(mktemp -d /tmp/jdk-XXXXX)
+    temp_file=$(basename "$source")
+    
+    if [[ "$source" =~ ^https?:// ]]; then
+        echo "Efetuando o download via url..."
+        if ! wget -q --show-progress "$source" -O "$temp_dir/$temp_file"; then
+            echo "Erro: Falha no download!"
+            return 1
+        fi
+    else
+        if [ -f "$source" ]; then
+            echo "Usando arquivo local..."
+            cp "$source" "$temp_dir/$temp_file"
+        else
+            echo "Erro: Arquivo não localizado!"
+            return 1
+        fi
+    fi
+    
+    echo "Instalando JDK versao: '$version'..."
+    mkdir "$DIR_JDK_VERSIONS/$version"
+    if ! tar -xzf "$temp_dir/$temp_file" -C "$DIR_JDK_VERSIONS/$version" --strip-components=1; then
+        echo "Erro: Falha ao extrair o arquivo!"
+        rm -rf "$temp_dir"
+        rm -rf "$DIR_JDK_VERSIONS/$version"
+        return 1
+    fi
+    
+    rm -rf "$temp_dir"
+    
+    echo "JDK versão '$version' instalada com sucesso!"
+    echo "Execute: 'jdkman use $version' para utilizar essa versão!"
+        
+}
+
+# Remove uma versão
+remove_version(){
+    local version current_version response
+    
+    version=${1:-}
+    current_version=$(get_current_version)
+    
+    if [ -z "$version" ]; then
+        echo "Erro: Informe uma versão para remoção!"
+        show_help
+        return 1
+    fi
+    
+    if [ "$(version_exists "$version")" = "no" ]; then
+        echo "Erro: Versão $version não encontrada!"
+        list_versions
+        return 1
+    fi
+    
+    current_version=$(get_current_version)
+    if [ "$current_version" = "$version" ]; then
+        echo "A versão '$version' está em uso!"
+        echo "Execute: 'jdkman disable' antes de tentar remover esta versão!"
+        return 1
+    fi
+    
+    read -p "Deseja realmente remover a versão $version? [s/N]: " response < /dev/tty
+    if [[ ! "$response" =~ ^[Ss]$ ]]; then
+        echo "Remoção cancelada."
+        return 0
+    fi
+    
+    read -p "Digite o número da versão para confirmar a remoção: " confirm_version < /dev/tty
+    if [ "$confirm_version" != "$version" ]; then
+        echo "A versão digitada não confere! Remoção cancelada."
+        return 0
+    fi
+    
+    echo "Removendo versao: $version..."
+    rm -rf "$DIR_JDK_VERSIONS/$version"
+    
+    echo "Versão $version removida com sucesso!"
+    echo "Execute 'source ~/.bashrc' para aplicar as mudanças!"
+    return 0    
+}
+
+# Controle principal de execução
+main(){
+    case ${1:-} in
+        "install")
+            install_version "${2:-}"
+            ;;
+        "remove")
+            remove_version "${2:-}"
+            ;;
+        "list")
+            list_versions "${2:-}"
+            ;;
+        "use")
+            use_version "${2:-}"
+            ;;
+        "disable")
+            disable_version
+            ;;
+        "help"|"")
+            show_help
+            ;;
+        *)
+             echo "Erro: Comando inválido! '${1:-}'"
+             show_help
+             return 1
+             ;;
+    esac     
+}
+
+main "$@"
