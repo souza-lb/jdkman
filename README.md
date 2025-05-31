@@ -49,7 +49,7 @@ Exemplo de saída:
 Versões JDK disponíveis:
     11.0.22
 --> 17.0.10
-    21.0.3
+    24.0.1
 ```
 
 ### ⬇️ Instalar uma versão
@@ -60,10 +60,10 @@ jdkman install [URL/arquivo]
 **Exemplos:**
 ```bash
 # Instalar via URL oficial (OpenJDK)
-jdkman install https://download.java.net/java/GA/jdk21.0.3/6f051398cb9c4f8e9a31b7e5a811af52/jdk-21.0.3_linux-x64_bin.tar.gz
+jdkman install https://download.java.net/java/GA/jdk24.0.1/24a58e0e276943138bf3e963e6291ac2/9/GPL/openjdk-24.0.1_linux-x64_bin.tar.gz
 
 # Instalar arquivo local
-jdkman install ~/Downloads/jdk-17.0.10_linux-x64_bin.tar.gz
+jdkman install ~/Downloads/openjdk-24.0.1_linux-x64_bin.tar.gz
 ```
 
 ### ⚡ Ativar uma versão
@@ -73,12 +73,12 @@ jdkman use [versão]
 
 **Exemplo:**
 ```bash
-jdkman use 21.0.3
+jdkman use 24.0.1
 ```
 
 Saída:
 ```
-Versão 21.0.3 definida como padrão!
+Versão 24.0.1 definida como padrão!
 Execute 'source ~/.bashrc' para aplicar as mudanças!
 ```
 
@@ -120,7 +120,7 @@ O jdkman organiza os arquivos em:
 ~/.jdkman/
 ├── jdk_versions/      # Versões instaladas
 │   ├── 17.0.10/
-│   ├── 21.0.3/
+│   ├── 24.0.1/
 │   └── current -> 17.0.10  # Link simbólico
 └── jdk_env            # Configuração de ambiente
 ```
