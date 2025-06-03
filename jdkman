@@ -188,7 +188,7 @@ install_version(){
     
     echo "Instalando JDK versao: '$version'..."
     mkdir "$DIR_JDK_VERSIONS/$version"
-    if ! tar -xzf "$temp_dir/$temp_file" -C "$DIR_JDK_VERSIONS/$version" --strip-components=1; then
+    if ! tar -xf "$temp_dir/$temp_file" -C "$DIR_JDK_VERSIONS/$version" --strip-components=1; then
         echo "Erro: Falha ao extrair o arquivo!"
         rm -rf "$temp_dir"
         rm -rf "$DIR_JDK_VERSIONS/$version"
