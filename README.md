@@ -66,6 +66,36 @@ jdkman install https://download.java.net/java/GA/jdk24.0.1/24a58e0e276943138bf3e
 jdkman install ~/Downloads/openjdk-24.0.1_linux-x64_bin.tar.gz
 ```
 
+### 🔄 Gerenciar repositório de versões
+```bash
+jdkman repo update     # Atualiza lista de links de versões disponíveis
+jdkman repo list       # Lista versões disponíveis no repositório
+jdkman repo [versão]   # Instala versão específica do repositório
+```
+
+**Exemplos:**
+```bash
+# Atualizar lista de links
+jdkman repo update
+
+# Listar versões disponíveis no repositório
+jdkman repo list
+
+# Instalar a versão 24.0.1 do repositório
+jdkman repo 24.0.1
+```
+
+Exemplo de saída do `repo list`:
+```
+Versões disponíveis no repositório:
+----------------------------------
+Versão       | Link
+----------------------------------
+24.0.1       | https://download.java.net/java/GA/jdk24.0.1/...tar.gz
+17.0.10      | https://download.java.net/java/GA/jdk17.0.10/...tar.gz
+...
+```
+
 ### ⚡ Ativar uma versão
 ```bash
 jdkman use [versão]
@@ -122,11 +152,12 @@ O jdkman organiza os arquivos em:
 │   ├── 17.0.10/
 │   ├── 24.0.1/
 │   └── current -> 17.0.10  # Link simbólico
-└── jdk_env            # Configuração de ambiente
+├── jdk_env            # Configuração de ambiente
+└── link-jdk.txt       # Lista de links do repositório (atualizado via 'repo update')
 ```
 
 ## 🔄 Pós-instalação
-Após usar `use` ou `disable`, sempre execute:
+Após usar `use`, `disable` ou `repo`, sempre execute:
 ```bash
 source ~/.bashrc
 ```
@@ -156,31 +187,48 @@ Para aplicar as mudanças no ambiente atual.
    Erro: Formato inválido! Use X.Y.Z
    ```
 
+5. **Operação já em progresso:**
+   ```
+   Erro: Operação já em progresso (PID ...).
+   ```
+
+6. **Repositório não encontrado:**
+   ```
+   Erro: Repositório não encontrado!
+   Execute 'jdkman repo update' primeiro.
+   ```
+
 ---
 
 ## 🔄 Fluxo de trabalho típico
 
 ```mermaid
 graph TD
-    A[Instalar versão] --> B{Usar versão?}
-    B -->|Sim| C[ jdkman use X.Y.Z ]
-    B -->|Não| D[Listar versões]
-    C --> E[source ~/.bashrc]
-    D --> F[Escolher versão]
-    F --> C
+    A[Atualizar repositório] --> B{Instalar versão}
+    B -->|Via URL| C[ jdkman install URL ]
+    B -->|Via Repositório| D[ jdkman repo X.Y.Z ]
+    C & D --> E{Usar versão?}
+    E -->|Sim| F[ jdkman use X.Y.Z ]
+    E -->|Não| G[Listar versões]
+    F --> H[source ~/.bashrc]
+    G --> I[Escolher versão]
+    I --> F
 ```
 
 Passos detalhados:
-1. **Instalar uma nova versão do JDK**: `jdkman install [URL]`
-2. **Decidir se deseja usar a versão imediatamente**:
-   - Se sim: ativar a versão com `jdkman use X.Y.Z`
+1. **Atualizar repositório (opcional):** `jdkman repo update`
+2. **Instalar nova versão do JDK:**
+   - Via URL: `jdkman install [URL]`
+   - Via repositório: `jdkman repo [versão]`
+3. **Decidir se deseja usar a versão imediatamente**:
+   - Se sim: ativar com `jdkman use X.Y.Z`
    - Se não: listar versões com `jdkman list`
-3. **Para listagem de versões**:
-   - Escolher uma versão específica
+4. **Para listagem de versões**:
+   - Escolher versão específica
    - Ativar com `jdkman use X.Y.Z`
-4. **Sempre após ativar/desativar**: `source ~/.bashrc`
-5. **Compilar e executar projetos Java**
-6. **Quando necessário**:
+5. **Sempre após operações:** `source ~/.bashrc`
+6. **Compilar e executar projetos Java**
+7. **Quando necessário**:
    - Desativar versão atual: `jdkman disable`
    - Remover versões antigas: `jdkman remove [versão]`
 
