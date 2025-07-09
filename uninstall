@@ -5,7 +5,7 @@
 # Autor: Leonardo Bruno
 # Contato: souzalb@proton.me
 # Versão: 1.0
-# Data: 30/05/2025
+# Data: 08/07/2025
 
 # Nome do arquivo alvo
 TARGET="jdkman"
@@ -24,6 +24,9 @@ FILE_BASHRC="$HOME/.bashrc"
 
 # Arquivo de ambiente JDK
 JDK_ENV_FILE="$DIR_JDKMAN/jdk_env"
+
+# Arquivo de repositório
+FILE_LINK_JDK="$DIR_JDKMAN/link-jdk.txt"
 
 # Mensagem inicial
 echo ""
@@ -102,6 +105,13 @@ remove_main_files() {
         echo "Removido: $DIR_JDKMAN/$TARGET"
     else
         echo "Arquivo não encontrado: $DIR_JDKMAN/$TARGET"
+    fi
+
+    if [ -f "$FILE_LINK_JDK" ]; then
+        rm -f "$FILE_LINK_JDK"
+        echo "Removido: $FILE_LINK_JDK"
+    else
+        echo "Arquivo não encontrado: $FILE_LINK_JDK"
     fi
 
     if [ -L "$CURRENT_JDK" ]; then
